@@ -67,3 +67,33 @@ def check_jpeg_trailing_data(abs_path: str) -> list[Anomaly]:
         ))
     return anomalies
 
+_ZIP_LOCAL_HEADER = b"PK\x03\x04"
+_ZIP_EOCD = b"PK\x05\x06"
+
+def check_zip_trailing_data(abs_path: str) -> list[Anomaly]:
+    anomalies: list[Anomaly] = []
+    try:
+        with open(abs_path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return anomalies
+
+    if not data.startswith(_ZIP_LOCAL_HEADER):
+        return anomalies
+
+    idx = data.find(_ZIP_EOCD)
+    if idx == -1:
+        return anomalies
+
+    # EOCD record is fixed at 22 bytes
+    eocd_fix_len = 22
+    trailing_start = idx + eocd_fix_len
+    trailing_len = len(data) - trailing_start
+    if trailing_len > 4:
+        anomalies.append(Anomaly(
+            description=f"The ZIP file contains approximately {trailing_len} bytes of additional data after the EOCD record. May attached other files after it",
+            severity="suspicious",
+            details={"offset": trailing_start, "trailing_bytes": trailing_len},
+        ))
+    return anomalies
+
