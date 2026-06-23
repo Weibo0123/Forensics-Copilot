@@ -1,7 +1,6 @@
 # anomalies.py
 
 from __future__ import annotations
-from numpy.ma.core import anomalies
 from forensics_copilot.model import Anomaly
 
 _PNG_HEADER = b"\x89PNG\r\n\x1a\n"
