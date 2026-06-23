@@ -97,3 +97,13 @@ def check_zip_trailing_data(abs_path: str) -> list[Anomaly]:
         ))
     return anomalies
 
+_RULES_BY_CATEGORY: dict[str, list] = {
+    "image": [check_png_trailing_data, check_jpeg_trailing_data],
+    "archive": [check_zip_trailing_data],
+}
+
+def run_anomaly_checks(abs_path: str, category: str) -> list[Anomaly]:
+    anomalies: list[Anomaly] = []
+    for rule in _RULES_BY_CATEGORY.get(category, []):
+        anomalies.extend(rule(abs_path))
+    return anomalies
