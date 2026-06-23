@@ -36,3 +36,44 @@ _CATEGORY_SUGGESTIONS: dict[str, list[tuple[str, str, str | None, int]]] = {
         ("File type not recognized — inspect structure with file/binwalk first", "Could not identify file type; may be a custom or obfuscated format", "binwalk", 1),
     ],
 }
+
+def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
+    suggestions: list[Suggestion] = []
+    next_id = start_id
+
+    for f in detected_files:
+        if f.extension_mismatch:
+            suggestions.append(Suggestion(
+                id=next_id,
+                target_file=f.path,
+                action=f"File extension '{f.declared_ext}' does not match the detected MIME type '{f.detected_mime}'",
+                reason="The file extension mismatches, it's a common spoofing technique.",
+                tool_hint="file.",
+                priority=1,
+            ))
+            next_id += 1
+
+        for anomaly in f.anomalies:
+            suggestions.append(Suggestion(
+                id=next_id,
+                target_file=f.path,
+                action=f"Investigate anomaly: {anomaly.description}",
+                reason="Suspicious file content detected.",
+                tool_hint="binwalk" if "extra data" in anomaly.description else None,
+                priority=1 if anomaly.severity in ("suspicious", "high") else 2,
+            ))
+            next_id += 1
+
+        for action, reason, tool_hint, priority in _CATEGORY_SUGGESTIONS.get(f.category, []):
+            suggestions.append(Suggestion(
+                id=next_id,
+                target_file=f.path,
+                action=action,
+                reason=reason,
+                tool_hint=tool_hint,
+                priority=priority,
+            ))
+            next_id += 1
+
+    suggestions.sort(key=lambda s: (s.priority, s.id))
+    return suggestions
