@@ -36,4 +36,34 @@ def check_png_trailing_data(abs_path: str) -> list[Anomaly]:
         ))
     return anomalies
 
+_JPEG_SOI = b"\xff\xd8"
+_JPEG_EOI = b"\xff\xd9"
+def check_jpeg_trailing_data(abs_path: str) -> list[Anomaly]:
+    anomalies: list[Anomaly] = []
+    try:
+        with open(abs_path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return anomalies
+
+    if not data.startswith(_JPEG_SOI):
+        return anomalies
+
+    idx = data.find(_JPEG_EOI)
+    if idx == -1:
+        anomalies.append(Anomaly(
+            description="The JPEG file could not find a standard EOI marker; the file may be truncated or corrupted.",
+            severity="suspicious",
+        ))
+        return anomalies
+
+    trailing_start = idx + len(_JPEG_EOI)
+    trailing_len = len(data) - trailing_start
+    if trailing_len > 0:
+        anomalies.append(Anomaly(
+            description=f"The JPEG file has trailing data after the EOI marker ({trailing_len} bytes).",
+            severity="suspicious",
+            details={"offset": trailing_start, "trailing_bytes": trailing_len},
+        ))
+    return anomalies
 
