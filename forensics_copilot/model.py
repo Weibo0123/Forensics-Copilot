@@ -9,6 +9,7 @@ class SuggestionStatus:
     PENDING  = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    DONE     = "done"
 
 @dataclass()
 class Anomaly:
