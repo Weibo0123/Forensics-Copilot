@@ -51,4 +51,6 @@ class AnalysisReport:
     suggestions: list[Suggestion] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["generated_at"] = self.generated_at.isoformat()
+        return d
