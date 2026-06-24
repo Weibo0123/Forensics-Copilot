@@ -48,7 +48,7 @@ def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1)
                 target_file=f.path,
                 action=f"File extension '{f.declared_ext}' does not match the detected MIME type '{f.detected_mime}'",
                 reason="The file extension mismatches, it's a common spoofing technique.",
-                tool_hint="file.",
+                tool_hint="file",
                 priority=1,
             ))
             next_id += 1
@@ -59,7 +59,7 @@ def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1)
                 target_file=f.path,
                 action=f"Investigate anomaly: {anomaly.description}",
                 reason="Suspicious file content detected.",
-                tool_hint="binwalk" if "extra data" in anomaly.description else None,
+                tool_hint="binwalk" if ("trailing data" in anomaly.description or "additional data" in anomaly.description) else None,
                 priority=1 if anomaly.severity in ("suspicious", "high") else 2,
             ))
             next_id += 1
