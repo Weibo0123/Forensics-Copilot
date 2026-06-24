@@ -1,6 +1,7 @@
 # anomalies.py
 
 from __future__ import annotations
+import struct
 from forensics_copilot.model import Anomaly
 
 _PNG_HEADER = b"\x89PNG\r\n\x1a\n"
@@ -80,13 +81,15 @@ def check_zip_trailing_data(abs_path: str) -> list[Anomaly]:
     if not data.startswith(_ZIP_LOCAL_HEADER):
         return anomalies
 
-    idx = data.find(_ZIP_EOCD)
+    idx = data.rfind(_ZIP_EOCD)
     if idx == -1:
         return anomalies
 
     # EOCD record is fixed at 22 bytes
-    eocd_fix_len = 22
-    trailing_start = idx + eocd_fix_len
+    if idx + 22 > len(data):
+        return anomalies
+    comment_len = struct.unpack("<H", data[idx + 20: idx + 22])[0]
+    trailing_start = idx + 22 + comment_len
     trailing_len = len(data) - trailing_start
     if trailing_len > 4:
         anomalies.append(Anomaly(
