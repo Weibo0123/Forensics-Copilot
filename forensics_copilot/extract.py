@@ -40,7 +40,7 @@ def _try_extract_tar(abs_path: str, dest_dir: str) -> ExtractionResult:
     result = ExtractionResult()
     try:
         with tarfile.open(abs_path) as tf:
-            tf.extractall(dest_dir)
+            tf.extractall(dest_dir, filter="data")
         result.success = True
         result.extracted_to = dest_dir
     except Exception as e:
