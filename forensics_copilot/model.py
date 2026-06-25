@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any,Optional
 import enum
 
-class SuggestionStatus:
+class SuggestionStatus(str, enum.Enum):
     PENDING  = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -71,13 +71,13 @@ class FlagMatch:
 @dataclass()
 class ExecutionResult:
     tool: str
-    command: str
-    returncode: int
-    stdout: str
-    stderr: str
+    command: list[str]
+    returncode: int = None
+    stdout: str = ""
+    stderr: str = ""
     stdout_truncated: bool = False
     stderr_truncated: bool = False
     stdout_file: Optional[str] = None
     stderr_file: Optional[str] = None
-    time_out: bool = False
+    timed_out: bool = False
     error: Optional[str] = None
