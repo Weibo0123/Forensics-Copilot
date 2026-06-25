@@ -93,6 +93,8 @@ def _execute(suggestion: Suggestion) -> Suggestion:
     suggestion.status = SuggestionStatus.DONE if proc.returncode == 0 else SuggestionStatus.FAILED
     return suggestion
 
+def is_tool_wired(tool_hint: str | None) -> bool:
+    return bool(tool_hint) and tool_hint in _TOOL_COMMANDS
 
 def execute_suggestion(report: AnalysisReport, suggestion_id: int) -> Suggestion:
     suggestion = next((s for s in report.suggestions if s.id == suggestion_id), None)
