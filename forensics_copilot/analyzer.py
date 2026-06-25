@@ -41,7 +41,7 @@ def _analyze_single_file(
                         nested_abs = os.path.join(root, fname)
                         nested_rel = os.path.relpath(nested_abs, result.extracted_to)
                         nested_display = f"{rel_path}/{nested_rel}"
-                        _analyze_single_file(nested_abs, nested_display, rel_path, depth + 1, out_files, temp_dirs)
+                        _analyze_single_file(nested_abs, nested_display, rel_path, depth + 1, out_files, temp_dirs, custom_flag_patterns)
             elif result.note:
                 detected.anomalies.append(_extracted_note_to_anomaly(result.note))
         else:
@@ -58,13 +58,13 @@ def analyze(input_path: str, custom_flag_patterns: list[tuple[str, str]] | None 
     try:
         if os.path.isfile(input_path):
             rel_path = os.path.basename(input_path)
-            _analyze_single_file(input_path, rel_path, None, 0, out_files, temp_dirs)
+            _analyze_single_file(input_path, rel_path, None, 0, out_files, temp_dirs, custom_flag_patterns)
         elif os.path.isdir(input_path):
             for root, _dirs, files in os.walk(input_path):
                 for fname in files:
                     abs_path = os.path.join(root, fname)
                     rel_path = os.path.relpath(abs_path, input_path)
-                    _analyze_single_file(abs_path, rel_path, None, 0, out_files, temp_dirs)
+                    _analyze_single_file(abs_path, rel_path, None, 0, out_files, temp_dirs, custom_flag_patterns)
         else:
             raise FileNotFoundError(f"The input path '{input_path}' does not exist or is not a file or directory.")
 

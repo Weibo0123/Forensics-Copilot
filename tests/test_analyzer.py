@@ -209,3 +209,83 @@ class TestSuggestions:
             s for s in report.suggestions if "anomaly" in s.action.lower()
         )
         assert anomaly_suggestion.tool_hint == "binwalk"
+
+class TestFlagScanning:
+    def test_default_pattern_detected_in_text_file(self, tmp_sample_dir):
+        path = tmp_sample_dir / "notes.txt"
+        path.write_text("here is the answer: flag{default_pattern_hit}")
+
+        report, temp_dirs = analyze(str(path))
+
+        f = report.detected_files[0]
+        assert len(f.flag_matches) == 1
+        assert f.flag_matches[0].matched_text == "flag{default_pattern_hit}"
+        assert f.flag_matches[0].pattern_name == "flag{}"
+
+    def test_flag_scanned_in_raw_bytes_not_just_text_category(self, tmp_sample_dir):
+        # Trailing data appended after a PNG's IEND is not valid PNG and the
+        # file is still categorized as "image", not "text" — the scanner
+        # must still catch a flag hidden in there.
+        png_path = tmp_sample_dir / "hidden.png"
+        from tests.fixtures import write_minimal_png
+        write_minimal_png(str(png_path), trailing_data=b"ctf{hidden_in_trailing_bytes}")
+
+        report, temp_dirs = analyze(str(png_path))
+
+        f = report.detected_files[0]
+        assert f.category == "image"
+        assert any(fm.matched_text == "ctf{hidden_in_trailing_bytes}" for fm in f.flag_matches)
+
+    def test_flag_found_inside_nested_archive(self, tmp_sample_dir):
+        from tests.fixtures import write_zip_with_files
+        zip_path = tmp_sample_dir / "simple.zip"
+        write_zip_with_files(str(zip_path), {"flag.txt": b"FLAG{nested_inside_zip}"})
+
+        report, temp_dirs = analyze(str(zip_path))
+
+        nested = next(f for f in report.detected_files if f.path == "simple.zip/flag.txt")
+        assert nested.flag_matches[0].matched_text == "FLAG{nested_inside_zip}"
+
+    def test_no_match_means_empty_list(self, tmp_sample_dir):
+        path = tmp_sample_dir / "boring.txt"
+        path.write_text("nothing interesting here")
+
+        report, temp_dirs = analyze(str(path))
+
+        assert report.detected_files[0].flag_matches == []
+
+    def test_custom_pattern_supported(self, tmp_sample_dir):
+        path = tmp_sample_dir / "weird.bin"
+        path.write_bytes(b"noise MYCTF{custom_format_only} noise")
+
+        report, temp_dirs = analyze(
+            str(path),
+            custom_flag_patterns=[("myctf", r"MYCTF\{[^}]{1,300}\}")],
+        )
+
+        f = report.detected_files[0]
+        names = {fm.pattern_name for fm in f.flag_matches}
+        assert "myctf" in names
+
+    def test_invalid_custom_pattern_does_not_crash(self, tmp_sample_dir):
+        path = tmp_sample_dir / "notes.txt"
+        path.write_text("flag{still_found_via_default}")
+
+        # "(" with no closing paren is an invalid regex — should be skipped,
+        # not raise.
+        report, temp_dirs = analyze(
+            str(path),
+            custom_flag_patterns=[("broken", r"(unclosed")],
+        )
+
+        f = report.detected_files[0]
+        assert any(fm.matched_text == "flag{still_found_via_default}" for fm in f.flag_matches)
+
+    def test_flag_match_generates_top_priority_suggestion(self, tmp_sample_dir):
+        path = tmp_sample_dir / "notes.txt"
+        path.write_text("flag{priority_zero}")
+
+        report, temp_dirs = analyze(str(path))
+
+        assert report.suggestions[0].priority == 0
+        assert "flag{priority_zero}" in report.suggestions[0].action
