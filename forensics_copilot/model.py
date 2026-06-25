@@ -4,12 +4,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any,Optional
+import enum
 
 class SuggestionStatus:
     PENDING  = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
     DONE     = "done"
+    FAILED   = "failed"
+    SKIPPED  = "skipped"
 
 @dataclass()
 class Anomaly:
@@ -36,11 +39,13 @@ class DetectedFile:
 class Suggestion:
     id: int                            # For AI to know which suggestion the user wants
     target_file: str
+    target_abs_path: str
     action: str
     reason: str
     tool_hint: Optional[str] = None
     priority: int = 2                  # 1 = high, 2 = medium, 3 = low
     status: SuggestionStatus = SuggestionStatus.PENDING
+    result: Optional[ExecutionResult] = None
 
 @dataclass()
 class AnalysisReport:
@@ -62,3 +67,17 @@ class FlagMatch:
     pattern_name: str
     matched_text: str
     offset: int
+
+@dataclass()
+class ExecutionResult:
+    tool: str
+    command: str
+    returncode: int
+    stdout: str
+    stderr: str
+    stdout_truncated: bool = False
+    stderr_truncated: bool = False
+    stdout_file: Optional[str] = None
+    stderr_file: Optional[str] = None
+    time_out: bool = False
+    error: Optional[str] = None
