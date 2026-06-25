@@ -28,6 +28,7 @@ class DetectedFile:
     category: str
     extension_mismatch: bool = False
     anomalies: list[Anomaly] = field(default_factory=list)
+    flag_matches: list[FlagMatch] = field(default_factory=list)
     sha256: Optional[str] = None
     extracted_from: Optional[str] = None
 
@@ -55,3 +56,9 @@ class AnalysisReport:
         d = asdict(self)
         d["generated_at"] = self.generated_at.isoformat()
         return d
+
+@dataclass()
+class FlagMatch:
+    pattern_name: str
+    matched_text: str
+    offset: int
