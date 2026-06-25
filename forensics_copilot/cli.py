@@ -19,7 +19,26 @@ def main() -> int:
         default=None,
         help="Save the full report as a JSON file"
     )
+    parser.add_argument(
+        "--flag-pattern",
+        metavar="[NAME=]REGEX",
+        action="append",
+        default=None,
+        help=(
+            "Add a custom flag-format regex to scan for, in addition to the "
+            "built-in flag{}/ctf{}/picoCTF{} patterns. Matched against raw "
+            "bytes, case-insensitive. Repeatable. Optionally prefix with a "
+            "name, e.g. --flag-pattern 'mybadctf=MBCTF\\{[^}]{1,300}\\}'."
+        ),
+    )
     args = parser.parse_args()
+
+    custom_patterns: list[tuple[str, str]] = []
+    for i, raw in enumerate(args.flag_pattern or [], start=1):
+        name, _, pattern = raw.partition("=")
+        if not pattern:
+            name, pattern = f"custom{i}", raw
+        custom_patterns.append((name, pattern))
 
     try:
         report, _temp_dirs = analyze(args.input_path)

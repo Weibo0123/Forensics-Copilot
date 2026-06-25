@@ -15,7 +15,7 @@ _CATEGORY= {
     "unknown": "unknown-type file",
 }
 
-_PRIORITY_LABELS = {1: "[High]", 2: "[Medium]", 3: "[Low]"}
+_PRIORITY_LABELS = {0: "[FLAG]", 1: "[High]", 2: "[Medium]", 3: "[Low]"}
 
 def render_text_report(report: AnalysisReport) -> str:
     lines: list[str] = []

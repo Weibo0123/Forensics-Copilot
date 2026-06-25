@@ -1,6 +1,9 @@
 # suggest.py
 
 from __future__ import annotations
+
+from sympy import preview
+
 from forensics_copilot.model import Suggestion, DetectedFile
 
 _CATEGORY_SUGGESTIONS: dict[str, list[tuple[str, str, str | None, int]]] = {
@@ -40,6 +43,21 @@ _CATEGORY_SUGGESTIONS: dict[str, list[tuple[str, str, str | None, int]]] = {
 def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
     suggestions: list[Suggestion] = []
     next_id = start_id
+
+    for f in detected_files:
+        if f.flag_matches:
+            preview = ", ".join(fm.matched_text for fm in f.flag_matches[:3])
+            if len(f.flag_matches) > 3:
+                preview += f", ... (+{len(f.flag_matches) - 3} more)"
+            suggestions.append(Suggestion(
+                id=next_id,
+                target_file=f.path,
+                action=f"Candidate flag found: {preview}",
+                reason="Matched a flag-format pattern against the file's raw bytes.",
+                tool_hint=None,
+                priority=0,
+            ))
+            next_id += 1
 
     for f in detected_files:
         if f.extension_mismatch:

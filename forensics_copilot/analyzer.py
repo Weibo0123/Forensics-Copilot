@@ -9,6 +9,7 @@ from forensics_copilot.anomalies import run_anomaly_checks
 from forensics_copilot.model import DetectedFile, Suggestion, AnalysisReport, Anomaly
 from forensics_copilot.suggest import gengerate_suggestions
 from forensics_copilot.extract import extract_file, MAX_RECURSION_DEPTH
+from forensics_copilot.flagscan import scan_for_flags
 
 def _analyze_single_file(
         abs_path: str,
@@ -17,12 +18,15 @@ def _analyze_single_file(
         depth: int,
         out_files: list[DetectedFile],
         temp_dirs: list[str],
+        custom_flag_patterns: list[tuple[str, str]] | None = None,
 ) -> None:
     info = identify_file(abs_path, rel_path)
     detected = DetectedFile(extracted_from=extracted_from, **info)
 
     anomalies = run_anomaly_checks(abs_path, detected.category)
     detected.anomalies.extend(anomalies)
+    detected.flag_matches.extend(scan_for_flags(abs_path, custom_flag_patterns))
+
     out_files.append(detected)
 
     if detected.category == "archive":
@@ -46,7 +50,7 @@ def _analyze_single_file(
 def _extracted_note_to_anomaly(note: str) -> Anomaly:
     return Anomaly(description=note, severity="info")
 
-def analyze(input_path: str) -> tuple[AnalysisReport, list[str]]:
+def analyze(input_path: str, custom_flag_patterns: list[tuple[str, str]] | None = None) -> tuple[AnalysisReport, list[str]]:
     input_path = os.path.abspath(input_path)
     out_files: list[DetectedFile] = []
     temp_dirs: list[str] = []
