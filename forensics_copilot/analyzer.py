@@ -81,3 +81,7 @@ def _safe_rmtree(path: str) -> None:
         shutil.rmtree(path)
     except OSError:
         pass
+
+def cleanup_temp_dirs(temp_dirs: list[str]) -> None:
+    for d in temp_dirs:
+        _safe_rmtree(d)
