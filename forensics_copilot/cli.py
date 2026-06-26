@@ -65,7 +65,7 @@ def main() -> int:
         default=None,
         help=(
             "Add a custom flag-format regex to scan for, in addition to the "
-            "built-in flag{}/ctf{}/picoCTF{} patterns. Matched against raw "
+            "built-in flag{}/ctf{} patterns. Matched against raw "
             "bytes, case-insensitive. Repeatable. Optionally prefix with a "
             "name, e.g. --flag-pattern 'mybadctf=MBCTF\\{[^}]{1,300}\\}'."
         ),
