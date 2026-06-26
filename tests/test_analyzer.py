@@ -210,6 +210,72 @@ class TestSuggestions:
         )
         assert anomaly_suggestion.tool_hint == "binwalk"
 
+class TestNewToolSuggestionGating:
+    def test_clean_png_gets_pngcheck_but_not_xxd_or_ent(self, tmp_sample_dir):
+        png_path = tmp_sample_dir / "clean.png"
+        write_minimal_png(str(png_path))  # no trailing data, no anomalies
+
+        report, temp_dirs = analyze(str(png_path))
+
+        hints = {s.tool_hint for s in report.suggestions}
+        assert "pngcheck" in hints
+        assert "xxd" not in hints   # no anomaly/mismatch signal to justify it
+        assert "ent" not in hints   # category "image" alone doesn't trigger entropy
+
+    def test_jpeg_does_not_get_pngcheck(self, tmp_sample_dir):
+        jpeg_path = tmp_sample_dir / "photo.jpg"
+        write_minimal_jpeg(str(jpeg_path))
+
+        report, temp_dirs = analyze(str(jpeg_path))
+
+        hints = {s.tool_hint for s in report.suggestions}
+        assert "pngcheck" not in hints  # category="image" but mime is jpeg, not png
+
+    def test_png_with_trailing_data_gets_xxd_and_ent_and_pngcheck(self, tmp_sample_dir):
+        png_path = tmp_sample_dir / "suspicious.png"
+        write_minimal_png(str(png_path), trailing_data=b"hidden_payload")
+
+        report, temp_dirs = analyze(str(png_path))
+
+        hints = {s.tool_hint for s in report.suggestions}
+        assert {"xxd", "ent", "pngcheck"} <= hints
+
+    def test_zip_gets_zipinfo(self, tmp_sample_dir):
+        zip_path = tmp_sample_dir / "archive.zip"
+        write_zip_with_files(str(zip_path), {"a.txt": b"hello"})
+
+        report, temp_dirs = analyze(str(zip_path))
+
+        zip_suggestions = [s for s in report.suggestions if s.target_file == "archive.zip"]
+        assert any(s.tool_hint == "zipinfo" for s in zip_suggestions)
+        assert any(s.tool_hint == "ent" for s in zip_suggestions)  # archive category always gets entropy
+
+    def test_non_zip_archive_does_not_get_zipinfo(self, tmp_sample_dir):
+        import gzip
+        gz_path = tmp_sample_dir / "data.gz"
+        with gzip.open(str(gz_path), "wb") as f:
+            f.write(b"some content")
+
+        report, temp_dirs = analyze(str(gz_path))
+
+        gz_file = report.detected_files[0]
+        assert gz_file.category == "archive"  # sanity check it's even classified as archive
+        gz_suggestions = [s for s in report.suggestions if s.target_file == "data.gz"]
+        assert not any(s.tool_hint == "zipinfo" for s in gz_suggestions)  # gzip isn't a zip
+        assert any(s.tool_hint == "ent" for s in gz_suggestions)  # but entropy still applies
+
+    def test_unknown_category_gets_xxd_and_ent(self, tmp_sample_dir):
+        weird_path = tmp_sample_dir / "mystery.bin"
+        weird_path.write_bytes(os.urandom(64))
+
+        report, temp_dirs = analyze(str(weird_path))
+
+        f = report.detected_files[0]
+        if f.category == "unknown":  # only meaningful if magic genuinely can't classify it
+            hints = {s.tool_hint for s in report.suggestions}
+            assert "xxd" in hints
+            assert "ent" in hints
+
 class TestFlagScanning:
     def test_default_pattern_detected_in_text_file(self, tmp_sample_dir):
         path = tmp_sample_dir / "notes.txt"

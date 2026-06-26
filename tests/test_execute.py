@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 import os
+import shutil
 import time
+import zipfile
 import pytest
-
 from forensics_copilot import execute as execute_mod
 from forensics_copilot.execute import execute_suggestion, _execute
 from forensics_copilot.model import AnalysisReport, Suggestion, SuggestionStatus
@@ -85,6 +86,48 @@ class TestExecuteBasics:
         assert s.status == SuggestionStatus.FAILED
         assert "no longer exists" in s.result.error
 
+class TestNewToolsRunSuccessfully:
+    @pytest.mark.skipif(shutil.which("xxd") is None, reason="xxd not installed")
+    def test_xxd_runs_successfully(self, tmp_path):
+        target = tmp_path / "hello.txt"
+        target.write_text("hello")
+        s = make_suggestion("xxd", str(target))
+        _execute(s)
+
+        assert s.status == SuggestionStatus.DONE
+        assert "68 65 6c 6c 6f" in s.result.stdout.replace("  ", " ") or "6865" in s.result.stdout
+
+    @pytest.mark.skipif(shutil.which("zipinfo") is None, reason="zipinfo not installed")
+    def test_zipinfo_runs_successfully(self, tmp_path):
+        zip_path = tmp_path / "test.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("a.txt", b"hello")
+        s = make_suggestion("zipinfo", str(zip_path))
+        _execute(s)
+
+        assert s.status == SuggestionStatus.DONE
+        assert "a.txt" in s.result.stdout
+
+    @pytest.mark.skipif(shutil.which("pngcheck") is None, reason="pngcheck not installed")
+    def test_pngcheck_runs_successfully(self, tmp_path):
+        png_path = tmp_path / "test.png"
+        from tests.fixtures import write_minimal_png
+        write_minimal_png(str(png_path))
+        s = make_suggestion("pngcheck", str(png_path))
+        _execute(s)
+
+        assert s.status == SuggestionStatus.DONE
+        assert "OK" in s.result.stdout or "No errors" in s.result.stdout
+
+    @pytest.mark.skipif(shutil.which("ent") is None, reason="ent not installed")
+    def test_ent_runs_successfully(self, tmp_path):
+        target = tmp_path / "random.bin"
+        target.write_bytes(os.urandom(1000))
+        s = make_suggestion("ent", str(target))
+        _execute(s)
+
+        assert s.status == SuggestionStatus.DONE
+        assert "Entropy" in s.result.stdout
 
 class TestExecuteUsesRealPathNotDisplayPath:
     def test_nested_display_path_is_not_used_as_filesystem_path(self, tmp_path):
