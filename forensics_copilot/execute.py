@@ -11,12 +11,20 @@ _TOOL_COMMANDS: dict[str, list[str]] = {
     "file": ["file", "--brief", "{target}"],
     "strings": ["strings", "-n", "6", "{target}"],
     "exiftool": ["exiftool", "{target}"],
+    "xxd": ["xxd", "{target}"],
+    "zipinfo": ["zipinfo", "-v", "{target}"],
+    "pngcheck": ["pngcheck", "-v", "{target}"],
+    "ent": ["ent", "{target}"],
 }
 
 _INSTALL_HINTS: dict[str, str] = {
     "file": "install it via your OS package manager, e.g. 'apt install file' or 'brew install file'.",
     "strings": "it ships with binutils — install via 'apt install binutils' or 'brew install binutils'.",
     "exiftool": "install via 'apt install libimage-exiftool-perl' or 'brew install exiftool'.",
+    "xxd": "ships by default on macOS; on Linux install via 'apt install xxd' (it's also bundled with vim).",
+    "zipinfo": "ships alongside unzip — install via 'apt install unzip' or 'brew install unzip'.",
+    "pngcheck": "install via 'apt install pngcheck' or 'brew install pngcheck'.",
+    "ent": "install via 'apt install ent' or 'brew install ent'.",
 }
 
 TIMEOUT_SECONDS = 15
