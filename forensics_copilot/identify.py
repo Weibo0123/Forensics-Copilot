@@ -3,6 +3,16 @@
 from __future__ import annotations
 import hashlib
 import os
+import sys
+
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    """
+    Running inside a PyInstaller bundle. This must before 'import magic'
+    """
+    _bundled_magic_db = os.path.join(sys._MEIPASS, "magic.mgc")
+    if os.path.exists(_bundled_magic_db):
+        os.environ["MAGIC"] = _bundled_magic_db
+
 import magic
 
 _CATEGORY_RULES: list[tuple[str, str]] = [
