@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Automated analysis and suggestion tool for CTF forensics challenges"
 requires-python = ">=3.9"
 dependencies = [
-    "python-magic>=0.4.27",
+    "python-magic>=0.4.27; platform_system != 'Windows'",
+    "python-magic-bin>=0.4.14; platform_system == 'Windows'",
 ]
 
 [project.scripts]

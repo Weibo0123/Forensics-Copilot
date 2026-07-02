@@ -28,7 +28,7 @@ def _prompt_and_execute(report, input_fn=input) -> None:
             print("\nStopping... remaining suggestions left untouched.")
             break
         if answer == "q":
-            print("Stooping... remaining suggestions left untouched. ")
+            print("Stopping... remaining suggestions left untouched. ")
             break
         if answer != "y":
             s.status = SuggestionStatus.REJECTED
@@ -71,7 +71,7 @@ def main() -> int:
         ),
     )
     parser.add_argument(
-        "interactive",
+        "--interactive",
         action="store_true",
         help=("After printing the report, ask once per suggestion whether to "
             "run its tool (y/n/q). Nothing runs without explicit per-suggestion confirmation."

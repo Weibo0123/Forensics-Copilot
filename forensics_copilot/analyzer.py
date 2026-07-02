@@ -7,7 +7,7 @@ import shutil
 from forensics_copilot.identify import identify_file
 from forensics_copilot.anomalies import run_anomaly_checks
 from forensics_copilot.model import DetectedFile, Suggestion, AnalysisReport, Anomaly
-from forensics_copilot.suggest import gengerate_suggestions
+from forensics_copilot.suggest import generate_suggestions
 from forensics_copilot.extract import extract_file, MAX_RECURSION_DEPTH
 from forensics_copilot.flagscan import scan_for_flags
 
@@ -68,7 +68,7 @@ def analyze(input_path: str, custom_flag_patterns: list[tuple[str, str]] | None 
         else:
             raise FileNotFoundError(f"The input path '{input_path}' does not exist or is not a file or directory.")
 
-        suggestions = gengerate_suggestions(out_files)
+        suggestions = generate_suggestions(out_files)
         report = AnalysisReport(input_path=input_path, detected_files=out_files, suggestions=suggestions)
         return report, temp_dirs
     except Exception:
