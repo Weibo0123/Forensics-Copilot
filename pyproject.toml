@@ -2,7 +2,12 @@
 name = "forensics-copilot"
 version = "0.1.0"
 description = "Automated analysis and suggestion tool for CTF forensics challenges"
+readme = "README.md"
 requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Weibo Lin" },
+]
 dependencies = [
     "python-magic>=0.4.27; platform_system != 'Windows'",
     "python-magic-bin>=0.4.14; platform_system == 'Windows'",
