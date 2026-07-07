@@ -19,7 +19,10 @@ It does not auto-solve challenges, but it lets users skip some boring and repeti
 Requires Python 3.9+.
 
 ```bash
-pip install -e
+python -m venv venv
+source  venv/bin/activate
+pip install python-magic
+pip install forensics-copilot==0.1.0
 ```
 
 This installs the 'forensics-copilot' command.
