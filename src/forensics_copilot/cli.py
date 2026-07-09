@@ -7,7 +7,7 @@ import json
 from forensics_copilot.model import SuggestionStatus
 from forensics_copilot.execute import execute_suggestion, is_tool_wired
 from forensics_copilot.analyzer import analyze, cleanup_temp_dirs
-from forensics_copilot.report import render_text_report
+from forensics_copilot.report import render_text_report, render_findings
 
 def _prompt_and_execute(report, input_fn=input) -> None:
     runnable = [
@@ -28,7 +28,7 @@ def _prompt_and_execute(report, input_fn=input) -> None:
             print("\nStopping... remaining suggestions left untouched.")
             break
         if answer == "q":
-            print("Stopping... remaining suggestions left untouched. ")
+            print("Stooping... remaining suggestions left untouched. ")
             break
         if answer != "y":
             s.status = SuggestionStatus.REJECTED
@@ -39,6 +39,8 @@ def _prompt_and_execute(report, input_fn=input) -> None:
         print(f"  -> {s.status.value}")
         if s.result.error:
             print(f"  -> {s.result.error}")
+        elif s.result.findings:
+            print(render_findings(s.result.findings))
         elif s.result.stdout.strip():
             for line in s.result.stdout.strip().splitlines()[:5]:
                 print(f"     {line}")
@@ -71,7 +73,7 @@ def main() -> int:
         ),
     )
     parser.add_argument(
-        "--interactive",
+        "interactive",
         action="store_true",
         help=("After printing the report, ask once per suggestion whether to "
             "run its tool (y/n/q). Nothing runs without explicit per-suggestion confirmation."

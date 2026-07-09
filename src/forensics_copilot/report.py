@@ -1,7 +1,11 @@
 # report.py
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from forensics_copilot.model import AnalysisReport
+
+if TYPE_CHECKING:
+    from forensics_copilot.model import Finding
 
 _CATEGORY= {
     "pcap": "pcap capture file",
@@ -56,4 +60,18 @@ def render_text_report(report: AnalysisReport) -> str:
             lines.append(f" {idx}. {priority_label} [{s.target_file}] {s.action}{tool}")
             lines.append(f" Reason: {s.reason}")
 
+    return "\n".join(lines)
+
+
+def render_findings(findings: list["Finding"]) -> str:
+    if not findings:
+        return "  (no findings)"
+    lines: list[str] = []
+    for f in findings:
+        filled = int(f.confidence * 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        lines.append(f"  [{f.kind}] confidence={f.confidence:.2f} [{bar}]")
+        lines.append(f"    {f.summary}")
+        if f.concluded_value is not None:
+            lines.append(f"    ✓ concluded: {f.concluded_value!r}")
     return "\n".join(lines)

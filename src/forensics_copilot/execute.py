@@ -1,11 +1,13 @@
 # execute.py
 
 from __future__ import annotations
+import importlib.util
+import json as _json
 import subprocess
 import tempfile
 import os
 import shutil
-from forensics_copilot.model import AnalysisReport, Suggestion, SuggestionStatus, ExecutionResult
+from forensics_copilot.model import AnalysisReport, Finding, Suggestion, SuggestionStatus, ExecutionResult
 
 _TOOL_COMMANDS: dict[str, list[str]] = {
     "file": ["file", "--brief", "{target}"],
@@ -15,6 +17,7 @@ _TOOL_COMMANDS: dict[str, list[str]] = {
     "zipinfo": ["zipinfo", "-v", "{target}"],
     "pngcheck": ["pngcheck", "-v", "{target}"],
     "ent": ["ent", "{target}"],
+    "audio_analyzer": ["python3", "-m", "audio_analyzer.cli", "{target}", "--json"],
 }
 
 _INSTALL_HINTS: dict[str, str] = {
@@ -25,11 +28,34 @@ _INSTALL_HINTS: dict[str, str] = {
     "zipinfo": "ships alongside unzip — install via 'apt install unzip' or 'brew install unzip'.",
     "pngcheck": "install via 'apt install pngcheck' or 'brew install pngcheck'.",
     "ent": "install via 'apt install ent' or 'brew install ent'.",
+    "audio_analyzer": "install via 'pip install audio-analyzer' (or 'pip install -e path/to/audio_analyzer' for local dev).",
+}
+
+_PYTHON_MODULE_TOOLS: dict[str, str] = {
+    "audio_analyzer": "audio_analyzer",
 }
 
 TIMEOUT_SECONDS = 15
 MAX_INLINE_OUTPUT_BYTES = 4096
 MAX_CAPTURED_OUTPUT_BYTES = 5 * 1024 * 1024
+
+def _parse_plugin_findings(result: ExecutionResult, suggestion: Suggestion, module: str) -> None:
+    try:
+        payload = json.loads(result.stdout)
+        for raw in payload.get("findings", []):
+            for raw in payload.get("findings", []):
+                result.findings.append(Finding(
+                    module=module,
+                    kind=raw.get("kind", "unknown"),
+                    confidence=float(raw.get("confidence", 0.0)),
+                    summary=raw.get("summary", ""),
+                    detail=raw.get("detail", {}),
+                    concluded_value=raw.get("concluded_value"),
+                    target_file=suggestion.target_file,
+                    target_abs_path=suggestion.target_abs_path,
+                ))
+    except Exception:
+        pass
 
 def _spill_to_disk(content: bytes, label: str) -> str:
     fd, path = tempfile.mkstemp(prefix=f"forensics_copilot_{label}_", suffix=".txt")
@@ -56,10 +82,16 @@ def _execute(suggestion: Suggestion) -> Suggestion:
     if template is None:
         return _skip(suggestion, tool, f"'{tool}' is not wired up to the executor yet.")
 
-    binary = template[0]
-    if shutil.which(binary) is None:
-        hint = _INSTALL_HINTS.get(binary, f"'{binary}' was not found on PATH.")
-        return _fail(suggestion, tool, [], f"'{binary}' is not installed or not on PATH — {hint}")
+    if tool in _PYTHON_MODULE_TOOLS:
+        module_name = _PYTHON_MODULE_TOOLS[tool]
+        if importlib.util.find_spec(module_name) is None:
+            hint = _INSTALL_HINTS.get(tool, f"install the '{module_name}' Python package.")
+            return _fail(suggestion, tool, [], f"Python package '{module_name}' is not installed — {hint}")
+    else:
+        binary = template[0]
+        if shutil.which(binary) is None:
+            hint = _INSTALL_HINTS.get(binary, f"'{binary}' was not found on PATH.")
+            return _fail(suggestion, tool, [], f"'{binary}' is not installed or not on PATH — {hint}")
 
     target = suggestion.target_abs_path
     if not os.path.exists(target):
@@ -99,6 +131,10 @@ def _execute(suggestion: Suggestion) -> Suggestion:
 
     suggestion.result = result
     suggestion.status = SuggestionStatus.DONE if proc.returncode == 0 else SuggestionStatus.FAILED
+
+    if tool in _PYTHON_MODULE_TOOLS and proc.returncode == 0:
+        _parse_plugin_findings(result, suggestion, tool)
+
     return suggestion
 
 def is_tool_wired(tool_hint: str | None) -> bool:

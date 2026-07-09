@@ -68,6 +68,18 @@ class FlagMatch:
     matched_text: str
     offset: int
 
+
+@dataclass()
+class Finding:
+    module: str
+    kind: str
+    confidence: float
+    summary: str
+    detail: dict = field(default_factory=dict)
+    concluded_value: Optional[str] = None
+    target_file: str = ""
+    target_abs_path: str = ""
+
 @dataclass()
 class ExecutionResult:
     tool: str

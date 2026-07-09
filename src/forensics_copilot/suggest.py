@@ -46,7 +46,6 @@ _RULES: list[tuple[Callable[[DetectedFile], bool], TextOrFn, TextOrFn, str | Non
         2,
     ),
 
-    # --- former _CATEGORY_SUGGESTIONS entries, unchanged in content ---
     (lambda f: f.category == "image", "Check image metadata (EXIF / hidden fields)", "Image file detected", "exiftool", 2),
     (lambda f: f.category == "image", "Check for image steganography (LSB / appended data)", "Image file detected", "binwalk + zsteg/stegsolve", 2),
     (lambda f: f.category == "image", "Scan for readable strings with strings", "Image file detected", "strings", 3),
@@ -65,22 +64,18 @@ _RULES: list[tuple[Callable[[DetectedFile], bool], TextOrFn, TextOrFn, str | Non
 
     (lambda f: f.category == "executable", "Check the executable's strings and import table", "Executable file detected", "strings / file / objdump", 2),
 
-    (lambda f: f.category == "audio", "Check the audio file's spectrogram (may hide a pattern/Morse code)", "Audio file detected", "Sonic Visualiser / Audacity", 2),
+    (lambda f: f.category == "audio", "Run automated audio steganography detection (Morse code and more)", "Audio file detected — audio_analyzer automatically scans for Morse code patterns and other hidden audio signals.", "audio_analyzer", 1),
+    (lambda f: f.category == "audio", "Manually inspect the spectrogram for visual patterns (e.g. images encoded in frequency)", "Audio file detected — some CTF challenges encode data visually in the spectrogram, which automated tools may not catch.", "Sonic Visualiser / Audacity", 2),
     (lambda f: f.category == "audio", "Check audio metadata", "Audio file detected", "exiftool", 3),
 
     (lambda f: f.category == "unknown", "File type not recognized — inspect structure with file/binwalk first", "Could not identify file type; may be a custom or obfuscated format", "binwalk", 1),
 ]
 
-def generate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
+def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
     suggestions: list[Suggestion] = []
     next_id = start_id
 
     for f in detected_files:
-        # These two stay as their own blocks rather than rows in _RULES:
-        # their text is built from *instance data* (which flags were
-        # found, which specific anomaly this is), not just derived from
-        # f's attributes via a fixed template — and the anomaly loop can
-        # produce any number of suggestions per file, not just 0 or 1.
         if f.flag_matches:
             preview = ", ".join(fm.matched_text for fm in f.flag_matches[:3])
             if len(f.flag_matches) > 3:
