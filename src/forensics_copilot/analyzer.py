@@ -4,12 +4,12 @@ from __future__ import annotations
 import os
 import tempfile
 import shutil
-from forensics_copilot.identify import identify_file
-from forensics_copilot.anomalies import run_anomaly_checks
-from forensics_copilot.model import DetectedFile, Suggestion, AnalysisReport, Anomaly
+from forensics_copilot.analyzers.identify import identify_file
+from forensics_copilot.analyzers.anomalies import run_anomaly_checks
+from forensics_copilot.model import DetectedFile, AnalysisReport, Anomaly
 from forensics_copilot.suggest import generate_suggestions
-from forensics_copilot.extract import extract_file, MAX_RECURSION_DEPTH
-from forensics_copilot.flagscan import scan_for_flags
+from forensics_copilot.analyzers.extract import extract_file, MAX_RECURSION_DEPTH
+from forensics_copilot.analyzers.flagscan import scan_for_flags
 
 def _analyze_single_file(
         abs_path: str,

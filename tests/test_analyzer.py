@@ -112,7 +112,7 @@ class TestArchiveExtraction:
         assert "outer.zip/inner.zip/flag.txt" in paths
 
     def test_recursion_stops_at_max_depth(self, tmp_sample_dir):
-        from forensics_copilot.extract import MAX_RECURSION_DEPTH
+        from forensics_copilot.analyzers.extract import MAX_RECURSION_DEPTH
 
         path = tmp_sample_dir / f"layer{MAX_RECURSION_DEPTH + 1}.zip"
         write_zip_with_files(str(path), {"flag.txt": b"FLAG{deep}"})
