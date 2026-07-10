@@ -71,7 +71,7 @@ _RULES: list[tuple[Callable[[DetectedFile], bool], TextOrFn, TextOrFn, str | Non
     (lambda f: f.category == "unknown", "File type not recognized — inspect structure with file/binwalk first", "Could not identify file type; may be a custom or obfuscated format", "binwalk", 1),
 ]
 
-def gengerate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
+def generate_suggestions(detected_files: list[DetectedFile], start_id: int = 1) -> list[Suggestion]:
     suggestions: list[Suggestion] = []
     next_id = start_id
 

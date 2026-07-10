@@ -93,3 +93,4 @@ class ExecutionResult:
     stderr_file: Optional[str] = None
     timed_out: bool = False
     error: Optional[str] = None
+    findings: list[Finding] = field(default_factory=list)

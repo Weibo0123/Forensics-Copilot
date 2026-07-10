@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 import importlib.util
-import json as _json
+import json
 import subprocess
 import tempfile
 import os
@@ -43,17 +43,16 @@ def _parse_plugin_findings(result: ExecutionResult, suggestion: Suggestion, modu
     try:
         payload = json.loads(result.stdout)
         for raw in payload.get("findings", []):
-            for raw in payload.get("findings", []):
-                result.findings.append(Finding(
-                    module=module,
-                    kind=raw.get("kind", "unknown"),
-                    confidence=float(raw.get("confidence", 0.0)),
-                    summary=raw.get("summary", ""),
-                    detail=raw.get("detail", {}),
-                    concluded_value=raw.get("concluded_value"),
-                    target_file=suggestion.target_file,
-                    target_abs_path=suggestion.target_abs_path,
-                ))
+            result.findings.append(Finding(
+                module=module,
+                kind=raw.get("kind", "unknown"),
+                confidence=float(raw.get("confidence", 0.0)),
+                summary=raw.get("summary", ""),
+                detail=raw.get("detail", {}),
+                concluded_value=raw.get("concluded_value"),
+                target_file=suggestion.target_file,
+                target_abs_path=suggestion.target_abs_path,
+            ))
     except Exception:
         pass
 
