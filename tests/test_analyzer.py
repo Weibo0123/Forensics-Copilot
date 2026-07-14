@@ -5,7 +5,7 @@ import os
 import sys
 import pytest
 from forensics_copilot.analyzer import analyze
-from tests.fixtures import write_minimal_png, write_minimal_jpeg, write_zip_with_files, write_password_protected_zip
+from tests.fixtures import write_minimal_png, write_minimal_jpeg, write_zip_with_files, write_password_protected_zip, write_minimal_mp4
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -78,6 +78,98 @@ class TestAnomalyDetection:
 
         top = next(f for f in report.detected_files if f.path == "with_comment.zip")
         assert top.anomalies == []
+
+
+    def test_zip_with_legit_comment_not_flagged(self, tmp_sample_dir):
+        import zipfile
+
+        zip_path = tmp_sample_dir / "with_comment.zip"
+        with zipfile.ZipFile(str(zip_path), "w") as zf:
+            zf.writestr("readme.txt", b"just a normal file")
+            zf.comment = b"this is just a hint, not hidden data"
+
+        report, temp_dirs = analyze(str(zip_path))
+
+        top = next(f for f in report.detected_files if f.path == "with_comment.zip")
+        assert top.anomalies == []
+
+    # ------------------------------------------------------------------
+    # MP4 trailing data
+    # ------------------------------------------------------------------
+
+    def test_mp4_without_trailing_data_clean(self, tmp_sample_dir):
+        mp4 = tmp_sample_dir / "clean.mp4"
+        write_minimal_mp4(str(mp4))
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "clean.mp4")
+        assert top.anomalies == []
+
+    def test_mp4_with_zip_trailing_data_detected(self, tmp_sample_dir):
+        # Simulates Thanh Hoa 1 / Thanh Hoa 2: AES ZIP appended after the MP4.
+        zip_trailer = b"PK\x03\x04" + b"\x00" * 100
+        mp4 = tmp_sample_dir / "with_zip.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=zip_trailer)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "with_zip.mp4")
+        assert len(top.anomalies) == 1
+        desc = top.anomalies[0].description
+        assert "trailing" in desc.lower()
+        assert "ZIP" in desc
+
+    def test_mp4_trailing_data_severity_is_suspicious(self, tmp_sample_dir):
+        mp4 = tmp_sample_dir / "suspicious.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=b"\xde\xad\xbe\xef" * 10)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "suspicious.mp4")
+        assert top.anomalies[0].severity == "suspicious"
+
+    def test_mp4_trailing_data_details_contain_offset_and_size(self, tmp_sample_dir):
+        trailer = b"PK\x03\x04" + b"\x00" * 50
+        mp4 = tmp_sample_dir / "detail.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=trailer)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "detail.mp4")
+        details = top.anomalies[0].details
+        assert "offset" in details
+        assert details["trailing_bytes"] == len(trailer)
+
+    def test_mp4_trailing_data_identifies_zip_signature(self, tmp_sample_dir):
+        mp4 = tmp_sample_dir / "zip_sig.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=b"PK\x03\x04" + b"\x00" * 20)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "zip_sig.mp4")
+        assert "ZIP" in top.anomalies[0].description
+
+    def test_mp4_trailing_data_identifies_png_signature(self, tmp_sample_dir):
+        mp4 = tmp_sample_dir / "png_sig.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=b"\x89PNG\r\n\x1a\n" + b"\x00" * 20)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "png_sig.mp4")
+        assert "PNG" in top.anomalies[0].description
+
+    def test_mp4_trailing_data_identifies_jpeg_signature(self, tmp_sample_dir):
+        mp4 = tmp_sample_dir / "jpg_sig.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=b"\xff\xd8\xff" + b"\x00" * 20)
+        report, _ = analyze(str(mp4))
+        top = next(f for f in report.detected_files if f.path == "jpg_sig.mp4")
+        assert "JPEG" in top.anomalies[0].description
+
+    def test_non_mp4_video_file_not_checked(self, tmp_sample_dir):
+        # A file that has video MIME but doesn't start with ftyp should not
+        # produce a false-positive — the validity gate must hold.
+        fake_vid = tmp_sample_dir / "fake.mp4"
+        fake_vid.write_bytes(b"\x00\x00\x00\x00moov" + b"\x00" * 100)
+        report, _ = analyze(str(fake_vid))
+        top = next(f for f in report.detected_files if f.path == "fake.mp4")
+        assert top.anomalies == []
+
+    def test_mp4_anomaly_generates_binwalk_suggestion(self, tmp_sample_dir):
+        # A trailing-data anomaly should trigger the binwalk hint in suggest.py.
+        mp4 = tmp_sample_dir / "hint.mp4"
+        write_minimal_mp4(str(mp4), trailing_data=b"PK\x03\x04" + b"\x00" * 20)
+        report, _ = analyze(str(mp4))
+        hints = {s.tool_hint for s in report.suggestions}
+        assert "binwalk" in hints
 
 
 class TestArchiveExtraction:

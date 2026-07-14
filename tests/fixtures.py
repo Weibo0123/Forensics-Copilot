@@ -50,3 +50,14 @@ def write_password_protected_zip(path: str, filename: str, content: bytes, passw
 def write_fake_extension_file(path: str, content: bytes) -> None:
     with open(path, "wb") as f:
         f.write(content)
+
+def _mp4_box(box_type: bytes, payload: bytes = b"") -> bytes:
+    size = 8 + len(payload)
+    return struct.pack(">I", size) + box_type + payload
+
+def write_minimal_mp4(path: str, trailing_data: bytes = b"") -> None:
+    ftyp = _mp4_box(b"ftyp", b"isom" + b"\x00\x00\x02\x00" + b"isom" + b"iso2" + b"mp41")
+    moov = _mp4_box(b"moov", b"\x00" * 8)
+    mdat = _mp4_box(b"mdat", b"\x00" * 4)
+    with open(path, "wb") as f:
+        f.write(ftyp + moov + mdat + trailing_data)
