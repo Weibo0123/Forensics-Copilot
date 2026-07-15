@@ -18,6 +18,8 @@ _TOOL_COMMANDS: dict[str, list[str]] = {
     "pngcheck": ["pngcheck", "-v", "{target}"],
     "ent": ["ent", "{target}"],
     "audio_analyzer": ["python3", "-m", "audio_analyzer.cli", "{target}", "--json"],
+    "zsteg": ["zsteg", "{target}"],
+    "stegseek": ["stegseek", "--crack", "{target}"],
 }
 
 _INSTALL_HINTS: dict[str, str] = {
@@ -28,6 +30,8 @@ _INSTALL_HINTS: dict[str, str] = {
     "zipinfo": "ships alongside unzip — install via 'apt install unzip' or 'brew install unzip'.",
     "pngcheck": "install via 'apt install pngcheck' or 'brew install pngcheck'.",
     "ent": "install via 'apt install ent' or 'brew install ent'.",
+    "zsteg":    "install via 'gem install zsteg' (requires Ruby).",
+    "stegseek": "install via 'apt install stegseek' or download from https://github.com/RickdeJager/stegseek/releases.",
     "audio_analyzer": "install via 'pip install audio-analyzer' (or 'pip install -e path/to/audio_analyzer' for local dev).",
 }
 
@@ -107,7 +111,7 @@ def _execute(suggestion: Suggestion) -> Suggestion:
     except subprocess.TimeoutExpired:
         return _fail(suggestion, tool, command, f"Timed out after {TIMEOUT_SECONDS}s.", timed_out=True)
     except OSError as e:
-        return _fail(suggestion, tool, command, f"Failed to launch '{binary}': {e}")
+        return _fail(suggestion, tool, command, f"Failed to launch '{command[0]}': {e}")
 
     raw_stdout = proc.stdout[:MAX_CAPTURED_OUTPUT_BYTES]
     raw_stderr = proc.stderr[:MAX_CAPTURED_OUTPUT_BYTES]

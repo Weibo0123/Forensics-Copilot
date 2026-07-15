@@ -49,6 +49,8 @@ _RULES: list[tuple[Callable[[DetectedFile], bool], TextOrFn, TextOrFn, str | Non
     (lambda f: f.category == "image", "Check image metadata (EXIF / hidden fields)", "Image file detected", "exiftool", 2),
     (lambda f: f.category == "image", "Check for image steganography (LSB / appended data)", "Image file detected", "binwalk + zsteg/stegsolve", 2),
     (lambda f: f.category == "image", "Scan for readable strings with strings", "Image file detected", "strings", 3),
+    (lambda f: f.detected_mime == "image/png",  "Scan PNG for LSB steganography across all common bit-plane and channel combinations", "PNG file detected — zsteg automatically tries dozens of configurations.", "zsteg", 1),
+    (lambda f: f.detected_mime in ("image/jpeg", "image/jpg"), "Attempt to crack JPEG steghide steganography with a wordlist", "JPEG file detected — stegseek brute-forces steghide-embedded payloads.", "stegseek", 1),
 
     (lambda f: f.category == "pdf", "Check PDF metadata (author / creation time / producer)", "PDF file detected", "exiftool / pdfinfo", 2),
     (lambda f: f.category == "pdf", "Check whether the PDF embeds attachments or JavaScript", "PDF file detected", "pdf-parser / peepdf", 2),
